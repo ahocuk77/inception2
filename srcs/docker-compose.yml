@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+  mariadb:
+    restart: always
+    build: ./requirements/mariadb
+    networks:
+      - inceptionNET
+    env_file:
+      - ./.env
+    volumes:
+      - db_data:/var/lib/mysql
+    expose:
+      - 3306
+  nginx:
+    restart: always
+    depends_on:
+      - wordpress
+    build: ./requirements/nginx
+    networks:
+      - inceptionNET
+    env_file:
+      - ./.env
+    volumes:
+      - wp_data:/var/www/html
+    ports:
+      - 443:443
+    
+
+
+
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      device: /home/ahocuk/data/mariadb
+      type: none
+      o: bind
+
+
+networks:
+  inceptionNET:
+    driver: bridge
