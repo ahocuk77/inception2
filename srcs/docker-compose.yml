@@ -1,43 +1,66 @@
-version: '3.9'
+version: '3.9' # Specifies the Docker Compose version
 
+# Define services (containers) in the application
 services:
+  # MariaDB Database Service
   mariadb:
-    restart: always
-    build: ./requirements/mariadb
+    restart: always                        # Automatically restart the container if it stops
+    build: ./requirements/mariadb          # Build the image from the specified Dockerfile
     networks:
-      - inceptionNET
+      - inceptionNET                       # Attach to the custom network
     env_file:
-      - ./.env
+      - ./.env                             # Use environment variables from the .env file
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql             # Persist database data on the host system
     expose:
-      - 3306
+      - 3306                               # Expose the default MySQL port for internal use
+
+  # Nginx Web Server
   nginx:
-    restart: always
+    restart: always                        # Automatically restart the container if it stops
     depends_on:
-      - wordpress
-    build: ./requirements/nginx
+      - wordpress                          # Ensure WordPress is ready before starting Nginx
+    build: ./requirements/nginx            # Build the image from the specified Dockerfile
     networks:
-      - inceptionNET
+      - inceptionNET                       # Attach to the custom network
     env_file:
-      - ./.env
+      - ./.env                             # Use environment variables from the .env file
     volumes:
-      - wp_data:/var/www/html
+      - wp_data:/var/www/html              # Mount WordPress files into Nginx container
     ports:
-      - 443:443
-    
+      - 443:443                            # Map port 443 (HTTPS) to the host system
 
+  # WordPress Service
+  wordpress:
+    restart: always                        # Automatically restart the container if it stops
+    depends_on:
+      - mariadb                            # Ensure MariaDB is ready before starting WordPress
+    build: ./requirements/wordpress        # Build the image from the specified Dockerfile
+    networks:
+      - inceptionNET                       # Attach to the custom network
+    env_file:
+      - ./.env                             # Use environment variables from the .env file
+    volumes:
+      - wp_data:/var/www/html              # Persist WordPress files on the host system
+    expose:
+      - 9000                               # Expose port 9000 for internal communication
 
-
+# Define persistent storage for services
 volumes:
   db_data:
-    driver: local
+    driver: local                          # Use local storage for volumes
     driver_opts:
-      device: /home/ahocuk/data/mariadb
-      type: none
-      o: bind
+      device: /home/ahocuk/data/mariadb    # Host directory for MariaDB data
+      type: none                           # Indicates a bind mount
+      o: bind                              # Bind the directory to the container volume
+  wp_data:
+    driver: local                          # Use local storage for volumes
+    driver_opts:
+      device: /home/ahocuk/data/wordpress  # Host directory for WordPress data
+      type: none                           # Indicates a bind mount
+      o: bind                              # Bind the directory to the container volume
 
-
+# Define custom networks for inter-container communication
 networks:
   inceptionNET:
-    driver: bridge
+    driver: bridge                         # Use a bridge network for container communication
