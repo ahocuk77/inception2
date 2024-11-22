@@ -1,21 +1,33 @@
+# Use Debian Buster as the base image
 FROM debian:buster
 
-RUN apt-get -y update
-RUN apt-get -y install curl
-RUN apt-get -y install php php-common php-mysqli php-fpm
-RUN apt-get -y install mariadb-client
+# Update package lists and install necessary packages
+RUN apt-get update -y && apt-get install -y \
+    curl \
+    php php-common php-mysqli php-fpm \
+    mariadb-client \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /run/php
-RUN mkdir -p /var/www/html/
+# Create necessary directories
+RUN mkdir -p /run/php /var/www/html
+
+# Set the working directory
 WORKDIR /var/www/html
 
-RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-RUN chmod +x wp-cli.phar
-RUN mv wp-cli.phar /usr/local/bin/wp-cli
+# Download and install WP-CLI
+RUN curl -sSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /usr/local/bin/wp-cli \
+    && chmod +x /usr/local/bin/wp-cli
 
+# Copy the entrypoint script and PHP-FPM configuration
 COPY entrypoint.sh /entrypoint.sh
-COPY www.conf /etc/php/7.3/fpm/pool.d/
+COPY www.conf /etc/php/7.3/fpm/pool.d/www.conf
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+# Ensure the entrypoint script is executable
+RUN chmod +x /entrypoint.sh
 
-CMD [ "php-fpm7.3", "--nodaemonize" ]
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Default command to run PHP-FPM in non-daemon mode
+CMD ["php-fpm7.3", "--nodaemonize"]
